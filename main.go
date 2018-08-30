@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"flag"
 	"html/template"
+	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -35,12 +37,20 @@ func init() {
 }
 
 func main() {
+
+	//build site
 	m := map[string]interface{}{}
 	s := NewStack()
 	filepath.Walk(*sourceDir, GatherJSON(s))
 	filepath.Walk(*sourceDir, GatherSource(s, m))
 	s.Add("", map[string]interface{}{*globalKey: m})
 	filepath.Walk(*sourceDir, Transform(s))
+
+	//host site
+	fs := http.FileServer(http.Dir(*targetDir))
+	http.Handle("/", fs)
+	log.Fatal(http.ListenAndServe(":8080", nil))
+
 }
 
 // splitMetadata splits the input buffer on FrontSeparator. It returns a byte-
